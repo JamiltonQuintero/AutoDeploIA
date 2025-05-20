@@ -1,0 +1,68 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# FastAPI + LangGraph AI Agents Project Rule
+
+Este proyecto está construido en Python usando FastAPI para exponer APIs escalables y LangGraph para la construcción de agentes de IA.
+
+## Principios Clave
+- Usa funciones puras (`def`) para lógica sin I/O y `async def` para operaciones asíncronas.
+- Prefiere la programación funcional y declarativa; evita clases salvo que sean estrictamente necesarias.
+- Modulariza: separa rutas, utilidades, modelos y lógica de negocio en archivos y directorios descriptivos (snake_case).
+- Usa Pydantic v2 para validación de entrada/salida y tipado fuerte en todos los endpoints.
+- Aplica el patrón RORO (Recibe un Objeto, Retorna un Objeto) en funciones y endpoints.
+- Define routers y subrutas en archivos separados bajo `routers/`.
+- Utiliza middlewares para logging, monitoreo y manejo global de errores.
+- Prefiere el gestor de contexto de ciclo de vida (`lifespan`) sobre los eventos `@app.on_event` para inicialización y limpieza de recursos.
+- Implementa manejo de errores consistente usando `HTTPException` para errores esperados y middlewares para errores inesperados.
+- Optimiza el rendimiento usando funciones asíncronas para I/O, caché (Redis o memoria), y lazy loading para grandes volúmenes de datos.
+
+## Estructura Recomendada
+- `main.py`: punto de entrada, instancia FastAPI, define lifespan y monta routers.
+- `routers/`: define routers y subrutas (ej: `agent_router.py`).
+- `models/` o `schemas/`: define modelos Pydantic para entrada/salida.
+- `utils/`: utilidades y lógica auxiliar.
+- `middlewares/`: middlewares personalizados.
+- `types/`: tipos y constantes compartidas.
+- `static/`: contenido estático si aplica.
+
+## Ejemplo de Referencia
+```python
+# [main.py](mdc:main.py)
+from fastapi import FastAPI
+from contextlib import asynccontextmanager
+from routers.agent_router import router as agent_router
+
+@asynccontextmanager
+def lifespan(app: FastAPI):
+    # Inicialización de recursos (ej: modelos IA, conexiones DB)
+    yield
+    # Limpieza de recursos
+
+app = FastAPI(lifespan=lifespan)
+app.include_router(agent_router)
+```
+
+```python
+# [routers/agent_router.py](mdc:routers/agent_router.py)
+from fastapi import APIRouter, HTTPException
+from models.agent import AgentInput, AgentOutput
+from utils.langgraph_agent import run_agent
+
+router = APIRouter(prefix="/agent")
+
+@router.post("/run", response_model=AgentOutput)
+async def run_agent_endpoint(input: AgentInput) -> AgentOutput:
+    try:
+        return await run_agent(input)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+```
+
+## Referencias
+- [FastAPI Lifespan Events](mdc:https:/fastapi.tiangolo.com/az/advanced/events)
+- [FastAPI Data Models](mdc:https:/fastapi.tiangolo.com/tutorial/body)
+- [LangGraph Documentation](mdc:https:/langchain-ai.github.io/langgraph)
+

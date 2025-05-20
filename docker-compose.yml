@@ -1,0 +1,88 @@
+    version: '3.8'
+
+    services:
+      db:
+        image: postgres:15
+        container_name: autodeploia_db
+        volumes:
+          - postgres_data:/var/lib/postgresql/data/
+        environment:
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: autodeploia_db
+        ports:
+          - "5433:5432"
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U user -d autodeploia_db"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+        networks:
+          - app_network
+
+      # app:
+      #   build: .
+      #   container_name: autodeploia_app
+      #   volumes:
+      #     - .:/app
+      #   env_file:
+      #     - .env
+      #   ports:
+      #     - "8000:8000"
+      #   depends_on:
+      #     db:
+      #       condition: service_healthy
+      #   environment:
+      #     DATABASE_URL: postgresql+asyncpg://user:password@db:5432/autodeploia_db
+      #     OPENAI_API_KEY: ${OPENAI_API_KEY}
+      #     LANGCHAIN_TRACING_V2: ${LANGCHAIN_TRACING_V2:-false}
+      #     LANGCHAIN_ENDPOINT: ${LANGCHAIN_ENDPOINT:-https://api.smith.langchain.com}
+      #     LANGCHAIN_API_KEY: ${LANGCHAIN_API_KEY}
+      #     LANGCHAIN_PROJECT: ${LANGCHAIN_PROJECT:-AutoDeploIA}
+      #   command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+      #   networks:
+      #     - app_network
+
+      # migrations:
+      #   build: .
+      #   container_name: autodeploia_migrations
+      #   env_file:
+      #     - .env
+      #   environment:
+      #     DATABASE_URL: postgresql+asyncpg://user:password@db:5432/autodeploia_db
+      #     OPENAI_API_KEY: ${OPENAI_API_KEY}
+      #     LANGCHAIN_TRACING_V2: ${LANGCHAIN_TRACING_V2:-false}
+      #     LANGCHAIN_ENDPOINT: ${LANGCHAIN_ENDPOINT:-https://api.smith.langchain.com}
+      #     LANGCHAIN_API_KEY: ${LANGCHAIN_API_KEY}
+      #     LANGCHAIN_PROJECT: ${LANGCHAIN_PROJECT:-AutoDeploIA}
+      #   depends_on:
+      #     db:
+      #       condition: service_healthy
+      #   command: ["alembic", "upgrade", "head"]
+      #   volumes:
+      #     - .:/app
+      #   networks:
+      #     - app_network
+
+    volumes:
+      postgres_data:
+
+    networks:
+      app_network:
+        driver: bridge
+
+    # Ensure you have a .env file in your project root (where docker-compose.yml is)
+    # with at least:
+    # OPENAI_API_KEY=your_actual_openai_api_key
+    # DATABASE_URL_LOCAL=postgresql+asyncpg://user:password@localhost:5433/autodeploia_db # For local dev if needed
+    # LANGCHAIN_TRACING_V2=true
+    # LANGCHAIN_API_KEY=your_langchain_api_key
+    # LANGCHAIN_PROJECT=AutoDeploIA
+    # LANGCHAIN_ENDPOINT=https://api.smith.langchain.com
+
+    # Note on DATABASE_URL for the 'app' service:
+    # I've set it explicitly in the 'environment' section for 'app' to use 'db:5432'.
+    # If you prefer using an .env file for the app service (e.g., via env_file: .env),
+    # ensure that the .env file contains DATABASE_URL=postgresql+asyncpg://user:password@db:5432/autodeploia_db
+    # or manage two .env files: one for local (localhost:5433) and one for docker (db:5432).
+    # The current setup overrides any env_file for DATABASE_URL for both 'app' and 'migrations'.
